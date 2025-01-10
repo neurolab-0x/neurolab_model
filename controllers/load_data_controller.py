@@ -6,20 +6,15 @@ from sklearn.metrics import accuracy_score, confusion_matrix, classification_rep
 from sklearn.model_selection import GridSearchCV
 import matplotlib.pyplot as plt
 
-# Load the data
 file = './data/features_raw.csv'
 raw_dataframe = pd.read_csv(file)
 
-# Drop the unnecessary column and fill NaN values
 dataframe = raw_dataframe.drop(columns=['Unnamed: 32']).fillna(raw_dataframe.mean())
 
-# Define the EEG columns
-eeg_columns = dataframe.columns[:-1]  # Exclude any non-EEG columns
+eeg_columns = dataframe.columns[:-1]
 
-# Calculate the mean for each row across the EEG columns
 mean_values = dataframe[eeg_columns].mean(axis=1)
 
-# Define a function to determine mental state based on mean values
 def determine_mental_state(mean_value):
     if mean_value < -0.1:
         return 'Calm'
@@ -28,14 +23,10 @@ def determine_mental_state(mean_value):
     else:
         return 'Neutral'
 
-# Apply the function to create the mental_state column
 dataframe['mental_state'] = mean_values.apply(determine_mental_state)
 
-# Display the updated DataFrame with the new 'mental_state' column
 print(dataframe[['mental_state'] + list(eeg_columns)].head())
 
-
-# Data splitting and Training
 
 x = dataframe.drop(columns=['mental_state'])
 y = dataframe['mental_state']
@@ -72,8 +63,6 @@ print(f"Confusion matrix : {conf_matrix}")
 class_report = classification_report(y_test, y_pred)
 print(f"Classification report : {class_report}")
 
-# Model tuning and Optimization
-
 param_grid = {
     'n_estimators' : [50, 100, 200],
     'max_depth' : [10, 20, None],
@@ -82,13 +71,10 @@ param_grid = {
 
 grid_search = GridSearchCV(estimator=rf_classifier, param_grid=param_grid, cv=5, n_jobs=1, verbose=2)
 
-# Fit the GSCV to Training data
 grid_search.fit(x_train, y_train)
 
 print("Best Hyperparamaters : ", grid_search.best_params_)
 print(f"Best score : {grid_search.best_score_:.2f}")
-
-# Retrain the model with the best Hyperparameters
 
 best_params = grid_search.best_params_
 
