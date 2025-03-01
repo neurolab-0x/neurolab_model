@@ -22,7 +22,7 @@ def augment_data(X):
 def preprocess_data(df, target_column='eeg_state', num_features=10):
     """Applies preprocessing steps including feature extraction, scaling, and balancing."""
     df_features = pd.concat([extract_features(df.iloc[i:i+1]) for i in range(len(df))], ignore_index=True)
-    imputer = SimpleImputer(strategy='mean')
+    imputer = SimpleImputer(strategy='constant', fill_value=0)
     scaler = StandardScaler()
     selector_f = SelectKBest(score_func=f_classif, k=num_features // 2)
     selector_mi = SelectKBest(score_func=mutual_info_classif, k=num_features // 2)
