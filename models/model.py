@@ -1,7 +1,6 @@
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import classification_report
 from sklearn.utils import compute_class_weight
-from sklearn.preprocessing import StandardScaler
 from tensorflow.keras.layers import Conv1D, MaxPooling1D, Flatten, Dense, LSTM, Input, Dropout, BatchNormalization # type: ignore
 from tensorflow.keras.callbacks import ReduceLROnPlateau # type: ignore
 import numpy as np

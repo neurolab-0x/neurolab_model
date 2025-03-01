@@ -14,14 +14,11 @@ def save_trained_model(model, model_path):
         None
     """
     try:
-        # Ensure the directory exists
         os.makedirs(os.path.dirname(model_path), exist_ok=True)
         
-        # Check if the model is valid
         if not isinstance(model, tensorflow.keras.Model):
             raise TypeError("The provided model is not a valid tensorflow.keras.Model.")
 
-        # Save the model
         model.save(model_path)
         print(f"Model saved successfully at {model_path}")
 

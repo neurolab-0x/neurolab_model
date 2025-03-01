@@ -1,5 +1,4 @@
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks
-from api.upload import process_uploaded_file
 from api.real_time import process_realtime_data
 from models.load_trained_model import load_trained_model
 from models.model import evaluate_model, train_hybrid_model
@@ -9,12 +8,9 @@ from preprocessing.load_data import load_data
 from preprocessing.labeling import label_eeg_states
 
 import os
-import pandas as pd
 import uvicorn
 
 app = FastAPI()
-
-# Load trained model at startup
 
 model_path="./data/processed/trained_model.h5"
 
@@ -24,43 +20,43 @@ async def process_uploaded_file(file: UploadFile = File(...)):
     file_location = f"temp/{file.filename}"
     os.makedirs("temp", exist_ok=True)
 
-    # Correct way to save an async UploadFile
     with open(file_location, "wb") as f:
         f.write(await file.read())
 
-    # Debugging: Check file size
     print(f"File {file.filename} saved at {file_location}")
     print(f"File size: {os.path.getsize(file_location)} bytes")
 
     if os.path.getsize(file_location) == 0:
         return {"error": "Uploaded file is empty!"}
 
-    # Load EEG data
     df = load_data(file_location)
     print(f"Dataset shape : {df.shape}")
     df = label_eeg_states(df)
 
-    # Extract features
     features_df = extract_features(df)
     print(f"Extracted features shape : {features_df.shape}")
     
-    # Preprocess data
     X, _, _, _ = preprocess_data(features_df)
 
-    # Load trained model
     model_path = "./processed/trained_model.h5"
     print(f"Loading trained model at {model_path} ...")
     model = load_trained_model(model_path)
     print("Predicting eeg states based on uploaded data ...")
-    # Predict mental state
+
     predictions = model.predict(X.reshape(-1, X.shape[1], 1))
     print("Linearising predictions ...")
     predicted_state = predictions.argmax(axis=1)
+    confidence_state = predicted_state.max(predictions, axis=1) * 100
     print("Cleaning up memory leakages ...")
-    # Clean up temporary file
     os.remove(file_location)
-    print("Process finished 😎😎")
-    return {"predicted_state": predicted_state.tolist()}
+    recommendations = [{
+        "0" : "",
+        "1" : "",
+        "2" : "",
+        "3" : ""
+    }]
+    print("Process finished")
+    return { "predicted_state": predicted_state.tolist(), "confidence_level": confidence_state.tolist() }
 
 
 @app.post("/realtime/")
@@ -76,15 +72,12 @@ async def retrain_model(file: UploadFile = File(...)):
     """Re-trains the existing model using uploaded dataset."""
     if not file:
         print("No file uploaded")
-    
-    # Save the uploaded file to the server
+
     file_location = f"./data/{file.filename}"
     with open(file_location, "wb") as f:
         f.write(await file.read())
 
-    # Now proceed with the training using the saved file
     run_training(file_location)
-    
     return {"message": "Model retraining started"}
 
 
