@@ -1,25 +1,5 @@
 # FastAPI and server
-fastapi==0.103.0
-uvicorn==0.22.0
-
-# Data manipulation
-pandas==1.5.3
-numpy==1.24.4
-
-# Machine learning
-scikit-learn==1.3.0
-xgboost==1.7.6
-imblearn==0.10.0  # Imbalanced-learn
-
-# Neural networks
-tensorflow==2.13.0
-
-# Data visualization
-matplotlib==3.7.2
-
-# Other utilities
-joblib==1.3.2
-scipy==1.11.3
-
-# Optional: For environment management
-python-dotenv==1.0.0
+fastapi
+uvicorn
+python-multipart
+pyngrok

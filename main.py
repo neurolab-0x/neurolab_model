@@ -98,10 +98,7 @@ async def save_uploaded_file(file: UploadFile) -> str:
         logger.error(f"File handling failure: {str(e)}")
         raise HTTPException(500, "File processing error") from e
 
-@app.post('/upload', 
-          summary="Enhanced EEG analysis", 
-          response_description="Cognitive state report",
-          tags=["Analysis"])
+@app.post('/upload', summary="Advanced EEG analysis", response_description="Cognitive state report", tags=["Analysis"])
 async def process_uploaded_file(file: UploadFile = File(...)):
     """
     Complete processing pipeline with:
@@ -132,11 +129,7 @@ async def process_uploaded_file(file: UploadFile = File(...)):
         total_duration = sum(state_durations.values()) or 0.1  # Prevent zero division
         
         # Generate clinical insights
-        recommendations = generate_recommendations(
-            state_durations,
-            total_duration,
-            confidence=np.mean(confidence)
-        )
+        recommendations = generate_recommendations(state_durations, total_duration, confidence=np.mean(confidence))
         
         return {
             "temporal_analysis": {
@@ -155,8 +148,8 @@ async def process_uploaded_file(file: UploadFile = File(...)):
             "clinical_recommendations": recommendations,
             "processing_metadata": {
                 "smoothing_window": f"{PROCESSING_CONFIG['smoothing_window']} samples",
-                "model_version": "2.1-calibrated",
-                "analysis_date": datetime.now().isoformat()
+                "model_version": "1.0 Beta",
+                "timestamps": datetime.now().isoformat()
             }
         }
         
@@ -166,7 +159,7 @@ async def process_uploaded_file(file: UploadFile = File(...)):
         logger.error(f"Pipeline failure: {str(e)}", exc_info=True)
         return JSONResponse(
             status_code=500,
-            content={"message": "Analysis pipeline error"}
+            content = { "message": "Analysis pipeline error" }
         )
     finally:
         if 'file_location' in locals() and os.path.exists(file_location):
@@ -187,20 +180,18 @@ async def realtime_data(data: dict, background_tasks: BackgroundTasks):
             content={"message": "Real-time processing failed"}
         )
 
-@app.post("/retrain", 
-          summary="Model retraining", 
-          tags=["Training"])
+@app.post("/retrain", summary="Model retraining", tags=["Training"])
 async def retrain_model(
     file: UploadFile = File(...),
     background_tasks: BackgroundTasks = BackgroundTasks()
 ):
-    """Model retraining endpoint"""
+    """Model retraining endpoint - Runs in the background for better API perfomance"""
     try:
         validate_file(file)
         file_location = await save_uploaded_file(file)
         
         background_tasks.add_task(run_training, file_location)
-        return {"message": "Retraining job initiated"}
+        logger.info("Retraining model started ...")
     
     except HTTPException as he:
         raise he
@@ -210,6 +201,8 @@ async def retrain_model(
             status_code=500,
             content={"message": "Retraining failed"}
         )
+    finally : 
+        return { "message": "Training model complete!" }
 
 def run_training(file_path: str):
     """Background training task"""
@@ -223,6 +216,7 @@ def run_training(file_path: str):
         metrics = evaluate_model(new_model, X_test, y_test)
         
         logger.info(f"Training complete: {metrics}")
+        return { "metrical_data" : metrics }
         
     except Exception as e:
         logger.error(f"Training failure: {str(e)}")
@@ -230,9 +224,7 @@ def run_training(file_path: str):
         if os.path.exists(file_path):
             os.remove(file_path)
 
-@app.get("/health", 
-         summary="System health check", 
-         tags=["Monitoring"])
+@app.get("/health", summary="System health check", tags=["Monitoring"])
 async def health_check():
     """Service health status endpoint"""
     return {
@@ -242,14 +234,12 @@ async def health_check():
         "active_features": list(PROCESSING_CONFIG.keys())
     }
 
-@app.get("/", 
-         summary="Service information", 
-         tags=["Info"])
+@app.get("/", summary="Service information", tags=["Info"])
 def root():
     """API root endpoint"""
     return {
         "service": "NeuroLab AI",
-        "version": "2.1.1",
+        "version": "nlPT 1-Preview",
         "modules": [
             "Temporal Analysis",
             "Clinical Recommendations",
