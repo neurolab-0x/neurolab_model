@@ -19,16 +19,15 @@ def extract_features(df):
         for col in numerical_cols:
             if col != 'eeg_state':
                 feature_data[f'{col}_mean'] = row[col]
-                feature_data[f'{col}_variance'] = row[col] ** 2  # Using squared value instead of full column variance
-                feature_data[f'{col}_skew'] = 0 if row[col] == 0 else row[col] / abs(row[col])  # Approximate skewness
-                feature_data[f'{col}_kurtosis'] = 3  # Assuming normal-like data (adjust if needed)
+                feature_data[f'{col}_variance'] = row[col] ** 2
+                feature_data[f'{col}_skew'] = 0 if row[col] == 0 else row[col] / abs(row[col])
+                feature_data[f'{col}_kurtosis'] = 3
                 
-                # Compute PSD
-                freqs, psd = compute_psd(np.array([row[col]]))  # Convert to array
+                freqs, psd = compute_psd(np.array([row[col]]))
                 feature_data[f'{col}_alpha'] = np.mean(psd[(freqs >= 8) & (freqs <= 12)])
                 feature_data[f'{col}_beta'] = np.mean(psd[(freqs >= 12) & (freqs <= 30)])
 
-        feature_data['eeg_state'] = row['eeg_state']  # Keep original label
+        feature_data['eeg_state'] = row['eeg_state']
         feature_list.append(feature_data)
 
     return pd.DataFrame(feature_list)

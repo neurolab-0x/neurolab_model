@@ -17,8 +17,7 @@ def calculate_state_durations(states):
             durations[current_state] += duration
             current_state = state
             start_idx = i
-    
-    # Add final state duration
+            
     duration = (len(states) - start_idx) * sample_rate
     durations[current_state] += duration
     
