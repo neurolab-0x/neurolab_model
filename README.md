@@ -166,6 +166,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Contact
 
-Project Maintainer - [Your Name](mailto:info.neurolab@example.com)
+AI Model Maintainer - [Mugisha Prosper](mailto:polo1.mugisha@gmail.com)
 
 Project Link: [Neurolabs Inc](https://github.com/asimwe1/eeg-ds)
