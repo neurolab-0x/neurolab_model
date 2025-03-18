@@ -1,11 +1,12 @@
 services:
   # API Service
   - type: web
-    name: neurai-api
+    name: eeg-analysis-api
     env: docker
     region: oregon
     plan: starter
     healthCheckPath: /health
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.9.0
@@ -16,6 +17,6 @@ services:
       - key: MAX_WORKERS
         value: 4
     disk:
-      name: neurai-data
+      name: eeg-data
       mountPath: /app/data
       sizeGB: 10 
