@@ -19,7 +19,7 @@ tensorflow>=2.8.0  # For deep learning models
 keras>=2.8.0
 torch>=1.10.0  # For PyTorch models
 joblib>=1.1.0  # For model persistence
-imbalanced-learn>=0.13.0
+imbalanced-learn>=0.12.0
 
 # Signal Processing
 scipy>=1.7.0
