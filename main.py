@@ -9,7 +9,6 @@ import logging
 import uvicorn
 import tensorflow as tf
 
-# Core components
 from api.real_time import process_realtime_data
 from models.model import evaluate_model, train_hybrid_model
 from preprocessing.features import extract_features
@@ -17,23 +16,20 @@ from preprocessing.preprocess import preprocess_data
 from preprocessing.load_data import load_data
 from preprocessing.labeling import label_eeg_states
 
-# Utility imports
 from utils.model_loading import load_calibrated_model
 from utils.temporal_processing import temporal_smoothing
 from utils.duration_calculation import calculate_state_durations
 from utils.recommendations import generate_recommendations
 from config.settings import PROCESSING_CONFIG, THRESHOLDS
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger("NeuroLabAPI")
 
-# Constants
 ALLOWED_EXTENSIONS = {'.edf', '.bdf', '.gdf', '.csv'}
-MAX_FILE_SIZE = 500 * 1024 * 1024  # 500MB
+MAX_FILE_SIZE = 500 * 1024 * 1024
 MODEL_PATH = os.getenv("MODEL_PATH", "./processed/trained_model.h5")
 
 @asynccontextmanager
@@ -43,13 +39,11 @@ async def lifespan(app: FastAPI):
     try:
         logger.info(f"Initializing calibrated model from {MODEL_PATH}")
         model = load_calibrated_model(MODEL_PATH)
-        # Compile model with metrics
         model.compile(
             optimizer='adam',
             loss='categorical_crossentropy',
             metrics=['accuracy']
         )
-        # Warm up the model with a dummy prediction
         dummy_input = np.zeros((1, *model.input_shape[1:]))
         _ = model.predict(dummy_input)
         logger.info("Model loaded and warmed up with temperature scaling")
@@ -66,7 +60,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS Configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -169,7 +162,7 @@ async def process_uploaded_file(file: UploadFile = File(...)):
         logger.error(f"Pipeline failure: {str(e)}", exc_info=True)
         return JSONResponse(
             status_code=500,
-            content = { "message": "Analysis pipeline error" }
+            content = { "message": "Analysis pipeline error", "error": str(e) }
         )
     finally:
         if 'file_location' in locals() and os.path.exists(file_location):
@@ -187,7 +180,7 @@ async def realtime_data(data: dict, background_tasks: BackgroundTasks):
         logger.error(f"Real-time init error: {str(e)}")
         return JSONResponse(
             status_code=500,
-            content={"message": "Real-time processing failed"}
+            content={"message": "Real-time processing failed", "error": str(e) }
         )
 
 @app.post("/retrain", summary="Model retraining", tags=["Training"])
@@ -209,7 +202,7 @@ async def retrain_model(
         logger.error(f"Retraining error: {str(e)}")
         return JSONResponse(
             status_code=500,
-            content={"message": "Retraining failed"}
+            content={"message": "Retraining failed", "error": str(e) }
         )
     finally : 
         return { "message": "Training model complete!" }
