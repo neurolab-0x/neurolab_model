@@ -7,6 +7,7 @@ import numpy as np
 import os
 import logging
 import uvicorn
+import tensorflow as tf
 
 # Core components
 from api.real_time import process_realtime_data
@@ -42,7 +43,16 @@ async def lifespan(app: FastAPI):
     try:
         logger.info(f"Initializing calibrated model from {MODEL_PATH}")
         model = load_calibrated_model(MODEL_PATH)
-        logger.info("Model loaded with temperature scaling")
+        # Compile model with metrics
+        model.compile(
+            optimizer='adam',
+            loss='categorical_crossentropy',
+            metrics=['accuracy']
+        )
+        # Warm up the model with a dummy prediction
+        dummy_input = np.zeros((1, *model.input_shape[1:]))
+        _ = model.predict(dummy_input)
+        logger.info("Model loaded and warmed up with temperature scaling")
     except Exception as e:
         logger.error(f"Model initialization failed: {str(e)}")
         raise RuntimeError("Critical model loading error") from e
@@ -50,9 +60,9 @@ async def lifespan(app: FastAPI):
     logger.info("Application shutdown initiated")
 
 app = FastAPI(
-    title="NeuroLab AI API",
-    description="Modular EEG Processing Platform",
-    version="2.1.1",
+    title="NeuroLab EEG Analysis API",
+    description="API for EEG signal processing and mental state classification",
+    version="1.0.0",
     lifespan=lifespan
 )
 
@@ -224,28 +234,44 @@ def run_training(file_path: str):
         if os.path.exists(file_path):
             os.remove(file_path)
 
-@app.get("/health", summary="System health check", tags=["Monitoring"])
+@app.get("/health")
 async def health_check():
-    """Service health status endpoint"""
-    return {
-        "status": "OPERATIONAL",
-        "timestamp": datetime.now().isoformat(),
-        "model_status": "CALIBRATED" if model else "ERROR",
-        "active_features": list(PROCESSING_CONFIG.keys())
-    }
+    """Health check endpoint"""
+    try:
+        # Verify model is loaded
+        dummy_input = np.zeros((1, *model.input_shape[1:]))
+        _ = model.predict(dummy_input)
+        
+        return {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "model_loaded": True,
+            "model_path": MODEL_PATH
+        }
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "unhealthy",
+                "timestamp": datetime.now().isoformat(),
+                "error": str(e)
+            }
+        )
 
-@app.get("/", summary="Service information", tags=["Info"])
-def root():
-    """API root endpoint"""
+@app.get("/")
+async def root():
+    """Root endpoint providing API information"""
     return {
-        "service": "NeuroLab AI",
-        "version": "nlPT 1-Preview",
-        "modules": [
-            "Temporal Analysis",
-            "Clinical Recommendations",
-            "Calibrated Predictions"
-        ],
-        "documentation": "/docs"
+        "name": "NeuroLab EEG Analysis API",
+        "version": "1.0.0",
+        "status": "active",
+        "endpoints": {
+            "/": "This information",
+            "/upload": "Upload EEG file for analysis",
+            "/realtime": "Real-time EEG processing",
+            "/health": "API health check"
+        }
     }
 
 if __name__ == "__main__":
