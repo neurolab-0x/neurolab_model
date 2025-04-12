@@ -11,3 +11,6 @@ THRESHOLDS = {
     'relaxation_threshold': 0.6,
     'max_recommendations': 3
 }
+
+MODEL_VERSION = "nlPT 1-Preview"
+MODEL_NAME = "neurai nlPT"
