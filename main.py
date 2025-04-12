@@ -7,7 +7,6 @@ import numpy as np
 import os
 import logging
 import uvicorn
-import tensorflow as tf
 
 from api.real_time import process_realtime_data
 from models.model import evaluate_model, train_hybrid_model
@@ -20,7 +19,7 @@ from utils.model_loading import load_calibrated_model
 from utils.temporal_processing import temporal_smoothing
 from utils.duration_calculation import calculate_state_durations
 from utils.recommendations import generate_recommendations
-from config.settings import PROCESSING_CONFIG, THRESHOLDS
+from config.settings import PROCESSING_CONFIG, MODEL_NAME, MODEL_VERSION
 
 logging.basicConfig(
     level=logging.INFO,
@@ -56,7 +55,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="NeuroLab EEG Analysis API",
     description="API for EEG signal processing and mental state classification",
-    version="1.0.0",
+    version=MODEL_VERSION,
     lifespan=lifespan
 )
 
@@ -151,7 +150,7 @@ async def process_uploaded_file(file: UploadFile = File(...)):
             "clinical_recommendations": recommendations,
             "processing_metadata": {
                 "smoothing_window": f"{PROCESSING_CONFIG['smoothing_window']} samples",
-                "model_version": "1.0 Beta",
+                "model_version": MODEL_VERSION,
                 "timestamps": datetime.now().isoformat()
             }
         }
@@ -256,11 +255,10 @@ async def health_check():
 async def root():
     """Root endpoint providing API information"""
     return {
-        "name": "NeuroLab EEG Analysis API",
-        "version": "1.0.0",
+        "name": f"{MODEL_NAME}",
+        "version": f"{MODEL_VERSION}",
         "status": "active",
         "endpoints": {
-            "/": "This information",
             "/upload": "Upload EEG file for analysis",
             "/realtime": "Real-time EEG processing",
             "/health": "API health check"

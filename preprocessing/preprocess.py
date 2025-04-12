@@ -41,8 +41,5 @@ def preprocess_data(df, target_column='eeg_state', num_features=10):
     X_test_f = selector_f.transform(X_test)
     X_test_mi = selector_mi.transform(X_test)
     X_test = np.concatenate((X_test_f, X_test_mi), axis=1)
-
-
-
-
+    
     return X_train, X_test, y_train, y_test
