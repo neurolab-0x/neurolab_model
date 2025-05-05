@@ -168,4 +168,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 AI Model Maintainer - [Mugisha Prosper](mailto:polo1.mugisha@gmail.com)
 
-Project Link: [Neurolabs Inc](https://github.com/asimwe1/eeg-ds)
+Project Link: [Neurolabs Inc](https://neurolab.cc)
