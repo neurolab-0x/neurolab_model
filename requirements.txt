@@ -11,6 +11,8 @@ scipy>=1.7.0,<2.0.0
 mne>=1.0.0,<2.0.0  # For EEG data processing
 pyedflib>=0.1.28  # For EDF file support
 biosignalsnotebooks>=0.6.7  # For BDF file support
+antropy>=0.1.4  # Enhanced entropy metrics for EEG
+PyWavelets>=1.3.0  # For wavelet decomposition
 
 # Machine Learning
 scikit-learn==1.2.2  # Fixed version for compatibility
@@ -21,7 +23,6 @@ joblib>=1.1.0,<2.0.0
 
 # Signal Processing
 statsmodels>=0.13.0,<1.0.0
-antropy>=0.1.4  # For entropy features
 pywavelets>=1.2.0  # For wavelet analysis
 
 # Visualization
@@ -45,3 +46,14 @@ prometheus-client>=0.11.0,<1.0.0
 # Security
 python-jose[cryptography]>=3.3.0,<4.0.0
 passlib[bcrypt]>=1.7.4,<2.0.0
+pyjwt>=2.4.0,<3.0.0  # JWT token handling
+cryptography>=38.0.0  # For encryption operations
+argon2-cffi>=21.3.0  # Stronger password hashing
+rate-limiter>=0.3.0  # API rate limiting
+email-validator>=1.3.0  # Email validation for user registration
+itsdangerous>=2.1.2  # Secure signed data
+PyNaCl>=1.5.0  # High-level cryptographic library
+
+# Security Tools & Hardening
+bandit>=1.7.4  # Security linter for Python code
+safety>=2.3.0  # Dependency vulnerability scanner
