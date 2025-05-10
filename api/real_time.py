@@ -70,7 +70,7 @@ class StreamBuffer:
         # Convert to numpy array if needed
         if not isinstance(data, np.ndarray):
             data = np.array(data)
-            
+        
         # Handle dimensionality
         if data.ndim == 1:
             data = data.reshape(1, -1)

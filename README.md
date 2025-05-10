@@ -15,6 +15,7 @@
 - [Model Training](#model-training)
 - [Contributing](#contributing)
 - [License](#license)
+- [Model Interpretability Features](#model-interpretability-features)
 
 ## 🔭 Overview
 
@@ -168,4 +169,61 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 AI Model Maintainer - [Mugisha Prosper](mailto:polo1.mugisha@gmail.com)
 
-Project Link: [Neurolabs Inc](https://github.com/asimwe1/eeg-ds)
+Project Link: [Neurolabs Inc](https://neurolab.cc)
+
+## Model Interpretability Features
+
+The platform now includes comprehensive model interpretability capabilities:
+
+### SHAP (SHapley Additive exPlanations)
+- Explains model predictions by attributing feature importance values
+- Helps understand which EEG features contribute most to each mental state classification
+- Available via API endpoint: `/interpretability/explain?explanation_type=shap`
+
+### LIME (Local Interpretable Model-agnostic Explanations)
+- Provides local explanations for individual predictions
+- Explains specific predictions by approximating the model locally
+- Available via API endpoint: `/interpretability/explain?explanation_type=lime`
+- Can be included in real-time streaming responses with `include_interpretability=true`
+
+### Confidence Calibration
+- Ensures model confidence scores accurately reflect true probabilities
+- Implements temperature scaling, Platt scaling, and isotonic regression methods
+- Available via API endpoint: `/interpretability/calibrate?method=temperature_scaling`
+- Improves reliability of mental state classifications
+
+### Reliability Diagrams
+- Visual representation of model calibration
+- Shows how predicted probabilities match observed frequencies
+- Available via API endpoint: `/interpretability/reliability_diagram`
+
+## Installation
+
+```bash
+# Install core dependencies
+pip install -r requirements.txt
+
+# Install interpretability packages (optional)
+pip install shap lime
+```
+
+## Usage
+
+```python
+from utils.interpretability import ModelInterpretability
+
+# Create interpreter with your model
+interpreter = ModelInterpretability(model)
+
+# Get SHAP explanations
+shap_results = interpreter.explain_with_shap(X_data)
+
+# Get LIME explanations
+lime_results = interpreter.explain_with_lime(X_data, sample_idx=0)
+
+# Calibrate model confidence
+cal_results = interpreter.calibrate_confidence(X_val, y_val, method='temperature_scaling')
+
+# Make predictions with calibrated confidence
+predictions = interpreter.predict_with_calibration(X_test)
+```

@@ -9,6 +9,7 @@ import base64
 
 from api.real_time import process_realtime_data, default_stream_buffer, StreamBuffer
 from utils.security import DataEncryption, validate_eeg_data, sanitize_model_type
+from utils.interpretability import ModelInterpretability
 from api.security import require_user_role, validate_client_identifier
 from config.settings import REAL_TIME_CONFIG, SECURITY_CONFIG
 
@@ -29,6 +30,7 @@ class EEGData(BaseModel):
     model_type: Optional[str] = Field(None, description="Model type to use for processing")
     clean_artifacts: bool = Field(True, description="Whether to clean artifacts")
     encrypt_response: Optional[bool] = Field(None, description="Whether to encrypt the response")
+    include_interpretability: bool = Field(False, description="Whether to include interpretability data")
     
     @validator('eeg_data')
     def validate_eeg_dimensions(cls, v):
@@ -73,6 +75,7 @@ class StreamingResponse(BaseModel):
     processing_time_ms: float
     timestamp: str
     encrypted: bool = False
+    interpretability: Optional[Dict[str, Any]] = None
 
 @router.post("/api/stream", response_model=StreamingResponse)
 async def stream_eeg_data(
@@ -89,6 +92,7 @@ async def stream_eeg_data(
     - Encrypts sensitive data
     - Uses client-specific streaming buffers
     - Provides detailed error tracking
+    - Can include interpretability data when requested
     """
     start_time = time.time()
     
@@ -136,6 +140,51 @@ async def stream_eeg_data(
         # Add processing statistics
         total_time_ms = round((time.time() - start_time) * 1000, 2)
         result['total_processing_time_ms'] = total_time_ms
+        
+        # Add interpretability data if requested
+        if data.include_interpretability:
+            try:
+                # Load the model used for predictions
+                from utils.model_loading import load_calibrated_model
+                from main import MODEL_PATH  # Import model path from main
+                
+                model = load_calibrated_model(model_path or MODEL_PATH)
+                
+                # Create interpretability handler
+                interpreter = ModelInterpretability(model)
+                
+                # Prepare data for interpretability
+                # Reshape for the model input if needed
+                eeg_features = eeg_array
+                if len(eeg_features.shape) < 3:
+                    eeg_features = eeg_features.reshape(1, eeg_features.shape[0], 1)
+                elif len(eeg_features.shape) == 2:
+                    eeg_features = eeg_features.reshape(eeg_features.shape[0], eeg_features.shape[1], 1)
+                
+                # Generate LIME explanation (faster than SHAP for streaming)
+                lime_results = interpreter.explain_with_lime(
+                    eeg_features, 
+                    sample_idx=0,
+                    num_features=5  # Limit to 5 features for performance
+                )
+                
+                # Extract top features and importance values
+                if "feature_importance" in lime_results and "explanation" in lime_results:
+                    # Get feature importance
+                    top_features = lime_results["feature_importance"]
+                    
+                    # Clean up explainer object that can't be serialized
+                    del lime_results["explanation"]
+                    
+                    # Add interpretability data to result
+                    result["interpretability"] = {
+                        "method": "lime",
+                        "feature_importance": top_features,
+                        "predicted_class": lime_results["predicted_class"],
+                    }
+            except Exception as e:
+                logger.warning(f"Failed to generate interpretability data: {str(e)}")
+                result["interpretability"] = {"error": str(e)}
         
         # Check if response should be encrypted
         should_encrypt = data.encrypt_response
