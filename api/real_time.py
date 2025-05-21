@@ -10,6 +10,9 @@ from utils.temporal_processing import temporal_smoothing
 from utils.artifacts import clean_eeg
 from utils.filters import apply_eeg_preprocessing
 from config.settings import PROCESSING_CONFIG
+from utils.data_handler import DataHandler, EEGDataPoint
+from utils.explanation_generator import ExplanationGenerator
+from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
 
@@ -167,130 +170,139 @@ def calculate_adaptive_window(data, min_window=50, max_window=500):
         return int(window_size)
 
 
-def process_realtime_data(data, model=None, model_path=None, clean_artifacts=True, stream_buffer=None):
+# Initialize components
+data_handler = DataHandler(buffer_size=1000)
+explanation_generator = ExplanationGenerator()
+
+async def process_realtime_data(data: Dict[str, Any], model) -> Dict[str, Any]:
     """
-    Processes incoming real-time EEG data and returns model predictions with detailed metrics.
+    Process real-time EEG data with immediate state classification and explanation.
     
-    Parameters:
-    -----------
-    data : dict or array-like
-        Raw EEG data in numpy array, list format, or dict with channels
-    model : keras.Model or None
-        Pre-loaded model to use for predictions, if None will load from model_path
-    model_path : str or None
-        Path to model file if model is not provided
-    clean_artifacts : bool
-        Whether to apply artifact removal to the signal
-    stream_buffer : StreamBuffer or None
-        Optional buffer for continuous data processing
+    Args:
+        data (Dict[str, Any]): Input data containing EEG features
+        model: Loaded and calibrated model for inference
         
     Returns:
-    --------
-    dict : Prediction results with state, confidence, and additional metrics
+        Dict[str, Any]: Processing results including state classification and explanation
+        
+    Raises:
+        ValueError: If data processing fails
     """
-    start_time = time.time()
-    
     try:
-        # Convert input to numpy array
-        if isinstance(data, dict) and 'eeg_data' in data:
-            # Extract from JSON request format
-            eeg_data = np.array(data['eeg_data'])
-        elif not isinstance(data, np.ndarray):
-            eeg_data = np.array(data)
-        else:
-            eeg_data = data
-        
-        # Handle dimensionality
-        if eeg_data.ndim == 1:
-            eeg_data = eeg_data.reshape(1, -1)
-        
-        # Use or create stream buffer
-        if stream_buffer is not None:
-            stream_buffer.add_data(eeg_data)
-            
-            # Determine adaptive window size based on signal characteristics
-            window_size = calculate_adaptive_window(eeg_data)
-            eeg_data = stream_buffer.get_window(window_size)
-            
-            if eeg_data is None or eeg_data.size == 0:
-                logger.warning("No data available in buffer")
-                return {"error": "No data available", "timestamp": np.datetime64('now').astype(str)}
-        
-        # Apply artifact cleaning if requested
-        if clean_artifacts and eeg_data.shape[1] > 10:  # Only if signal is long enough
-            try:
-                logger.info("Applying artifact cleaning")
-                eeg_data, artifact_report = clean_eeg(eeg_data)
-                # Apply EEG preprocessing (filtering)
-                for i in range(eeg_data.shape[0]):
-                    eeg_data[i] = apply_eeg_preprocessing(eeg_data[i])
-            except Exception as e:
-                logger.warning(f"Artifact cleaning skipped: {str(e)}")
-        
         # Extract features
-        logger.info("Extracting features")
-        # Create a DataFrame with channels as columns
-        import pandas as pd
-        df = pd.DataFrame(eeg_data.T, 
-                         columns=[f"channel_{i}" for i in range(eeg_data.shape[0])])
-        features_df = extract_features(df)
-        
-        # Preprocess features
-        logger.info("Preprocessing data")
-        X_processed = preprocess_data(features_df, clean_artifacts=False)
-        
-        # Load model if not provided (use singleton cache to prevent redundant loading)
-        if model is None:
-            if model_path is None:
-                model_path = "./processed/trained_model.h5"
+        features = data.get('features', {})
+        if not features:
+            raise ValueError("No features provided in input data")
             
-            # Use model cache
-            model_cache = ModelCache()
-            model = model_cache.get_model(model_path)
+        # Create data point
+        data_point = EEGDataPoint(
+            timestamp=data.get('timestamp'),
+            features=features,
+            subject_id=data.get('subject_id'),
+            session_id=data.get('session_id'),
+            state=None,  # Will be determined by model
+            confidence=None  # Will be determined by model
+        )
         
-        # Reshape for CNN input
-        X_processed = X_processed.reshape(-1, X_processed.shape[1], 1)
+        # Process data point
+        explanation = await data_handler.process_data_point(
+            data_point,
+            explanation_generator
+        )
         
-        # Get predictions
-        logger.info("Getting predictions")
-        predictions = model.predict(X_processed, verbose=0)  # Disable verbose output for faster prediction
-        predicted_state = np.argmax(predictions, axis=1)
-        confidence = np.max(predictions, axis=1) * 100  # Convert to percentage
+        # Add to buffer for temporal analysis
+        data_handler.buffer.append(data_point)
         
-        # Apply temporal smoothing for stability - adapt window size based on data length
-        smoothing_window = min(PROCESSING_CONFIG['smoothing_window'], len(predicted_state) // 4)
-        if len(predicted_state) > max(5, smoothing_window * 2):  # Only smooth if enough samples
-            smoothed_states = temporal_smoothing(predicted_state, smoothing_window)
-        else:
-            smoothed_states = predicted_state
-        
-        # Calculate state distribution
-        if len(smoothed_states) > 0:
-            unique_states, counts = np.unique(smoothed_states, return_counts=True)
-            state_distribution = {int(state): int(count) for state, count in zip(unique_states, counts)}
-            dominant_state = int(unique_states[np.argmax(counts)])
-        else:
-            state_distribution = {}
-            dominant_state = -1
-        
-        processing_time = time.time() - start_time
-        
-        # Return detailed results
         return {
-            "predicted_states": [int(s) for s in smoothed_states],
-            "dominant_state": dominant_state,
-            "confidence": float(np.mean(confidence)),
-            "state_distribution": state_distribution,
-            "num_samples": len(smoothed_states),
-            "processing_time_ms": round(processing_time * 1000, 2),
-            "window_size": eeg_data.shape[1] if eeg_data is not None else 0,
-            "timestamp": np.datetime64('now').astype(str)
+            "status": "success",
+            "explanation": explanation,
+            "timestamp": data_point.timestamp.isoformat()
         }
-    
+        
     except Exception as e:
-        logger.error(f"Real-time processing error: {str(e)}", exc_info=True)
-        return {"error": str(e), "timestamp": np.datetime64('now').astype(str)}
+        logger.error(f"Real-time processing error: {str(e)}")
+        raise ValueError(f"Real-time processing failed: {str(e)}")
 
+def validate_realtime_data(data: Dict[str, Any]) -> bool:
+    """
+    Validate real-time data format and content.
+    
+    Args:
+        data (Dict[str, Any]): Input data to validate
+        
+    Returns:
+        bool: True if data is valid, False otherwise
+    """
+    try:
+        # Check required fields
+        required_fields = ['features', 'subject_id', 'session_id']
+        for field in required_fields:
+            if field not in data:
+                logger.error(f"Missing required field: {field}")
+                return False
+                
+        # Validate features
+        features = data['features']
+        if not isinstance(features, dict):
+            logger.error("Features must be a dictionary")
+            return False
+            
+        # Check for minimum required channels
+        required_channels = ['channel_1', 'channel_2', 'channel_3']
+        for channel in required_channels:
+            if channel not in features:
+                logger.error(f"Missing required channel: {channel}")
+                return False
+                
+        # Validate feature values
+        for channel, value in features.items():
+            if not isinstance(value, (int, float)):
+                logger.error(f"Invalid feature value type for {channel}")
+                return False
+                
+        return True
+        
+    except Exception as e:
+        logger.error(f"Data validation error: {str(e)}")
+        return False
+
+def get_buffer_statistics() -> Dict[str, Any]:
+    """
+    Get statistics about the current data buffer.
+    
+    Returns:
+        Dict[str, Any]: Buffer statistics including size and temporal information
+    """
+    try:
+        buffer_data = data_handler.get_buffer_data()
+        
+        if not buffer_data:
+            return {
+                "buffer_size": 0,
+                "time_span": 0,
+                "data_points": 0
+            }
+            
+        # Calculate time span
+        timestamps = [dp.timestamp for dp in buffer_data]
+        time_span = (max(timestamps) - min(timestamps)).total_seconds()
+        
+        return {
+            "buffer_size": len(buffer_data),
+            "time_span": time_span,
+            "data_points": len(buffer_data),
+            "start_time": min(timestamps).isoformat(),
+            "end_time": max(timestamps).isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Buffer statistics error: {str(e)}")
+        return {
+            "error": str(e),
+            "buffer_size": 0,
+            "time_span": 0,
+            "data_points": 0
+        }
 
 # Create a default stream buffer for application-wide use
 default_stream_buffer = StreamBuffer(max_size=PROCESSING_CONFIG.get('max_buffer_size', 5000))

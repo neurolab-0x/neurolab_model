@@ -227,3 +227,90 @@ cal_results = interpreter.calibrate_confidence(X_val, y_val, method='temperature
 # Make predictions with calibrated confidence
 predictions = interpreter.predict_with_calibration(X_test)
 ```
+
+# Neurolab AI Model Server
+
+A FastAPI-based server for processing EEG data and detecting neurological events.
+
+## Features
+
+- EEG data storage and retrieval
+- Session management
+- Event detection and storage
+- Real-time data processing
+- RESTful API endpoints
+
+## Prerequisites
+
+- Python 3.8+
+- MongoDB
+- InfluxDB
+
+## Installation
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd neurolab_model
+```
+
+2. Create a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+4. Configure environment variables:
+Create a `.env` file in the root directory with the following variables:
+```env
+MONGODB_URL=mongodb://localhost:27017
+INFLUXDB_URL=http://localhost:8086
+INFLUXDB_TOKEN=your-token-here
+INFLUXDB_ORG=neurolab
+```
+
+## Running the Application
+
+1. Start MongoDB and InfluxDB services
+
+2. Run the application:
+```bash
+python main.py
+```
+
+The server will start at `http://localhost:8000`
+
+## API Documentation
+
+Once the server is running, you can access:
+- Interactive API documentation: `http://localhost:8000/docs`
+- Alternative API documentation: `http://localhost:8000/redoc`
+
+## API Endpoints
+
+### EEG Data
+- `POST /eeg/data` - Store a single EEG data point
+- `POST /eeg/session` - Store a complete EEG session
+- `GET /eeg/session/{session_id}` - Retrieve a session
+- `GET /eeg/data/{session_id}` - Retrieve EEG data for a time range
+
+### Events
+- `POST /events` - Store a detected event
+- `GET /events/{session_id}` - Retrieve events for a time range
+
+## Development
+
+The application uses:
+- FastAPI for the web framework
+- Motor for async MongoDB operations
+- InfluxDB Client for time-series data
+- Pydantic for data validation
+
+## License
+
+[Your License Here]

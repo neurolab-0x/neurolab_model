@@ -1,0 +1,12 @@
+timestamp,alpha,beta,theta,delta,gamma,state,confidence,metadata
+2024-03-20T10:00:00,0.8,0.2,0.1,0.05,0.1,0,0.95,{"device":"test_device","signal_quality":0.95}
+2024-03-20T10:00:01,0.75,0.25,0.15,0.1,0.12,0,0.92,{"device":"test_device","signal_quality":0.92}
+2024-03-20T10:00:02,0.7,0.3,0.2,0.15,0.15,0,0.88,{"device":"test_device","signal_quality":0.88}
+2024-03-20T10:00:03,0.65,0.35,0.25,0.2,0.18,1,0.85,{"device":"test_device","signal_quality":0.85}
+2024-03-20T10:00:04,0.6,0.4,0.3,0.25,0.2,1,0.82,{"device":"test_device","signal_quality":0.82}
+2024-03-20T10:00:05,0.55,0.45,0.35,0.3,0.22,1,0.78,{"device":"test_device","signal_quality":0.78}
+2024-03-20T10:00:06,0.5,0.5,0.4,0.35,0.25,2,0.75,{"device":"test_device","signal_quality":0.75}
+2024-03-20T10:00:07,0.45,0.55,0.45,0.4,0.28,2,0.72,{"device":"test_device","signal_quality":0.72}
+2024-03-20T10:00:08,0.4,0.6,0.5,0.45,0.3,2,0.68,{"device":"test_device","signal_quality":0.68}
+2024-03-20T10:00:09,0.35,0.65,0.55,0.5,0.32,2,0.65,{"device":"test_device","signal_quality":0.65}
+2024-03-20T10:00:10,0.3,0.7,0.6,0.55,0.35,2,0.62,{"device":"test_device","signal_quality":0.62} 
