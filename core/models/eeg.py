@@ -1,12 +1,52 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Union
+import numpy as np
+
+@dataclass
+class EEGChannelData:
+    """Class representing raw EEG channel data"""
+    channel_name: str
+    sampling_rate: float
+    data: np.ndarray
+    metadata: Optional[Dict[str, Any]] = None
+
+@dataclass
+class EEGRecording:
+    """Class representing a complete EEG recording with multiple channels"""
+    channels: List[EEGChannelData]
+    start_time: datetime
+    end_time: datetime
+    subject_id: str
+    session_id: str
+    metadata: Optional[Dict[str, Any]] = None
+
+    @property
+    def duration(self) -> float:
+        """Get recording duration in seconds"""
+        return (self.end_time - self.start_time).total_seconds()
+
+    @property
+    def channel_names(self) -> List[str]:
+        """Get list of channel names"""
+        return [ch.channel_name for ch in self.channels]
+
+    def get_channel_data(self, channel_name: str) -> Optional[EEGChannelData]:
+        """Get data for a specific channel"""
+        for channel in self.channels:
+            if channel.channel_name == channel_name:
+                return channel
+        return None
+
+    def to_array(self) -> np.ndarray:
+        """Convert all channel data to a numpy array (channels x timepoints)"""
+        return np.array([ch.data for ch in self.channels])
 
 @dataclass
 class EEGDataPoint:
     """Base class for EEG data points"""
     timestamp: datetime
-    features: Dict[str, float]
+    features: Union[Dict[str, float], 'EEGFeatures']
     subject_id: str
     session_id: str
     state: Optional[str] = None

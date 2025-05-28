@@ -36,7 +36,7 @@ SCHEMA_VERSIONS = {
     'eeg_data': '1.0',
     'session_data': '1.0',
     'event_data': '1.0',
-    'model_data': '1.0'
+    'model_data': '1.2'
 }
 
 # Data Retention Policies
