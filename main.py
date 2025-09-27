@@ -115,6 +115,56 @@ async def process_uploaded_file(
         logger.error(f"Error processing upload: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post('/analyze', summary="Analyze EEG data", response_description="Analysis results", tags=["Analysis"])
+async def analyze_eeg_data(
+    data: Dict[str, Any] = Body(..., description="EEG data to analyze"),
+    background_tasks: BackgroundTasks = None
+):
+    """Analyze EEG data and return results"""
+    try:
+        result = ml_processor.process_eeg_data(
+            data,
+            subject_id=data.get('subject_id', 'anonymous'),
+            session_id=data.get('session_id', 'session_1')
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Error analyzing data: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post('/calibrate', summary="Calibrate model", response_description="Calibration results", tags=["Model"])
+async def calibrate_model(
+    calibration_data: Dict[str, Any] = Body(..., description="Calibration data"),
+    background_tasks: BackgroundTasks = None
+):
+    """Calibrate the model with new data"""
+    try:
+        if not model_manager.model:
+            raise HTTPException(status_code=503, detail="Model not available")
+            
+        # Add calibration logic here
+        return {"status": "calibration_started", "message": "Calibration process initiated"}
+    except Exception as e:
+        logger.error(f"Error calibrating model: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get('/recommendations', summary="Get recommendations", response_description="Recommendations based on analysis", tags=["Analysis"])
+async def get_recommendations(
+    session_id: str = Query(..., description="Session ID to get recommendations for"),
+    subject_id: str = Query(..., description="Subject ID")
+):
+    """Get recommendations based on previous analysis"""
+    try:
+        # Add recommendation logic here
+        return {
+            "session_id": session_id,
+            "subject_id": subject_id,
+            "recommendations": []
+        }
+    except Exception as e:
+        logger.error(f"Error getting recommendations: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 def main():
     """Main entry point"""
     uvicorn.run(
